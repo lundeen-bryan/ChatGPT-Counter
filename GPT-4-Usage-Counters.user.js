@@ -1,15 +1,21 @@
 // ==UserScript==
-// @name         ChatGPT GPT-4 Counters
+// @name         ChatGPT GPT-4 Counters - FORK
 // @namespace 	 lugia19.com
-// @version      1.3.2
+// @version      1.4.0
 // @description  Add counters (and reset time indicators) for GPT-4/Custom GPTs to ChatGPT
-// @author       lugia19
-// @license		 MIT
+// @author       lugia19 - branch by lundeen-bryan
+// @license      MIT
 // @match        https://chat.openai.com/*
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_addValueChangeListener
+// @downloadURL https://update.greasyfork.org/scripts/482585/ChatGPT%20GPT-4%20Counters.user.js
+// @updateURL https://update.greasyfork.org/scripts/482585/ChatGPT%20GPT-4%20Counters.meta.js
 // ==/UserScript==
+
+// This fork was created by lundeen-bryan on 2024-01-16 as version 1.4.0.
+// The main goal of this fork was to make it only count the submit button
+// press and not count the [ENTER] keypress. See Changelog for more details.
 
 //If you want to have the next reset time show up on all webpages, simply change the match to be https://*/*
 
@@ -485,23 +491,6 @@ itemGrid.addEventListener('mouseleave', () => {
 //Automatically update counters via event delegation/bubbling
 console.log("Adding event listeners...")
 
-//keyup event (for sending messages by hitting enter)
-function handleKeyup(event) {
-	// Check if the event's target is the #prompt-textarea
-	if (event.target.matches('#prompt-textarea') && event.key === 'Enter' && !event.shiftKey) {
-		console.log("Enter pressed in textarea, without shift.");
-		if (isThreeFive())
-			return
-		console.log("Increasing counter.")
-		/*
-		let is_custom = window.location.toString().includes("https://chat.openai.com/g/"); // Is custom GPT?
-		let counter = is_custom ? custom_gpts_counter : gpt_4_counter;
-		counter.saveAndUpdate(counter.getValue() + 1);
-		*/
-		gpt_4_counter.saveAndUpdate(gpt_4_counter.getValue() + 1);
-	}
-}
-
 //Helper functions to traverse DOM...
 function get_parent_message(element) {
 	console.log(`Getting parent message of:`, element)
@@ -540,112 +529,21 @@ function is_message_assistant(message) {
 	return isAssistant
 }
 
-//Clicker event, for all the buttons.
+// Click event for all the buttons.
 function handleClick(event) {
-	console.log(`Click event from:`, event.target)
+    console.log(`Click event from:`, event.target);
 
-	if (isThreeFive())	//We just exit immediately.
-		return
-
-	//Get first button in tree.
-	let target_btn = event.target
-	while (target_btn && !target_btn.matches("button")) {
-		target_btn = target_btn.parentElement
-		if(target_btn && !("matches" in target_btn)) {
-        	target_btn = undefined;
-    	}
-	}
-
-
-	let target_path = event.target
-	while (target_path && !target_path.matches("path")) {
-		target_path = target_path.lastChild
-		if(target_path && !("matches" in target_path)) {
-        	target_path = undefined;
-    	}
-	}
-
-	console.log(`Found target_btn:`, target_btn)
-	console.log(`Found target_path:`, target_path)
-
-	let should_increase = false
-
-	if (target_btn) {	//Only continue if we found a button parent of event.target
-		//Refresh button
-		if (target_btn.matches('button.rounded-md')) {
-			if (target_path) {
-				console.log("Checking the path...")
-				let path_string = normalizeSVGPath(target_path.getAttribute("d"))
-				if (path_string === refresh_path || path_string === dislike_path) {
-					console.log("Path matches refresh path. Is refresh (or dislike!).")
-					should_increase = true
-				}
-			}
-
-
-			/*
-			let parent_msg = get_parent_message(target_btn)
-			let isAssistant = is_message_assistant(parent_msg)
-			console.log(`parent_msg:`, parent_msg)
-			console.log(`isAssistant:`, isAssistant)
-
-			if (isAssistant) {
-				console.log("Is assistant button.")
-				if (target_btn === target_btn.parentElement.lastChild) {
-					console.log("Is last button.")
-					if (target_btn.parentElement.classList.contains("text-gray-400")) {
-						should_increase = true
-					} else {
-						console.log("Is dislike - ignore.")
-					}
-				} else {
-					console.log("Is not last button - ignore.")
-				}
-			} else {
-				if (parent_msg) {
-					console.log("Is not assistant button - ignore.")
-				} else if (target_path) {
-					console.log("Could not find parent msg - check the path.")
-					let path_string = normalizeSVGPath(target_path.getAttribute("d"))
-					if (path_string === refresh_path) {
-						console.log("Path matches refresh path. Is refresh.")
-						should_increase = true
-					}
-				} else {
-					console.log("No parent msg and no target path. What?")
-				}
-
-			}*/
-		}
-
-		//Send button
-		if (target_btn.getAttribute("data-testid") === "send-button") {
-			console.log("Is send button.")
-			should_increase = true
-		}
-
-		//Save & Submit button
-		if (target_btn.textContent && (target_btn.textContent === "Save & Submit" || target_btn.textContent === "Regenerate")) {
-			console.log("Is save & submit or regenerate.")
-			should_increase = true
-		}
-
-		if (target_btn.classList.contains("text-left") && target_btn.classList.contains("rounded-xl")) {
-			console.log("Is example chat")
-			should_increase = true
-		}
-	}
-
-	if (should_increase) {
-		console.log("Increasing counter...")
-		/*
-		let is_custom = window.location.toString().includes("https://chat.openai.com/g/")
-		let counter = is_custom ? custom_gpts_counter : gpt_4_counter;
-		 */
-		gpt_4_counter.saveAndUpdate(gpt_4_counter.getValue() + 1)
-	}
+    // Check if the clicked element is the button with data-testid="send-button"
+    if (event.target.matches('button[data-testid="send-button"]')) {
+        console.log("Send button clicked.");
+        gpt_4_counter.saveAndUpdate(gpt_4_counter.getValue() + 1);
+    }
 }
 
-//Add event listeners to document
-document.addEventListener('keyup', handleKeyup);
+// Add event listener to document for click events
 document.addEventListener('click', handleClick);
+
+
+//Add event listeners to document
+document.addEventListener('click', handleClick);
+
